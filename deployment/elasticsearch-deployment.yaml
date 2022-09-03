@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wso2-elastic-search
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wso2-elastic-search
+      deployment: wso2-elastic-search
+  minReadySeconds: 30
+  template:
+    metadata:
+      labels:
+        app: wso2-elastic-search
+        deployment: wso2-elastic-search
+    spec:
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      containers:
+      - name: wso2-elastic-search
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+        livenessProbe:
+          tcpSocket:
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 5
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 0.25
+          limits:
+            cpu: 1
+        ports:
+        -
+          containerPort: 9200
+          protocol: "TCP"
+          name: http
+        -
+          containerPort: 9300
+          protocol: "TCP"
+        env:
+        - name: discovery.type
+          value: "single-node"
+        - name: ES_JAVA_OPTS
+          value: -Xms256m -Xmx256m
+        - name: network.host
+          valueFrom:
+            fieldRef:
+             fieldPath: status.podIP
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu

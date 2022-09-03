@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wso2apim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wso2apim
+      deployment: wso2apim
+  minReadySeconds: 30
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: wso2apim
+        deployment: wso2apim
+    spec:
+      initContainers:
+      - name: init-wso2-elasticsearch-service
+        image: busybox
+        command: ['sh', '-c', 'until nc -z wso2-elasticsearch-service 9200; do echo waiting for wso2-elasticsearch-service; sleep 2; done;']
+      containers:
+      - name: wso2apim
+        image: wso2/wso2am:4.0.0
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - nc -z localhost 9443
+          initialDelaySeconds: 150
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+              - /bin/bash
+              - -c
+              - nc -z localhost 9443
+          initialDelaySeconds: 150
+          periodSeconds: 10  
+        imagePullPolicy: Always
+        ports:
+        -
+          containerPort: 8280
+          protocol: "TCP"
+        -
+          containerPort: 8243
+          protocol: "TCP"
+        -
+          containerPort: 9763
+          protocol: "TCP"
+        -
+          containerPort: 9443
+          protocol: "TCP"
+        -
+          containerPort: 5672
+          protocol: "TCP"
+        -
+          containerPort: 9711
+          protocol: "TCP"
+        -
+          containerPort: 9611
+          protocol: "TCP"
+        -
+          containerPort: 7711
+          protocol: "TCP"
+        -
+          containerPort: 7611
+          protocol: "TCP"
+        volumeMounts:
+        - name: shared-logs
+          mountPath: /home/wso2carbon/wso2am-4.0.0/repository/logs/
+        - name: deployment-toml
+          mountPath: /home/wso2carbon/wso2am-4.0.0/repository/conf/deployment.toml
+          subPath: deployment.toml
+      - name: logstash
+        image: maanadev/logstash:6.5.3-custom
+        volumeMounts:
+        - name: shared-logs
+          mountPath: /usr/share/logstash/mylogs/
+        - name: logstash-yml
+          mountPath: /usr/share/logstash/config/logstash.yml
+          subPath: logstash.yml
+        - name: logstash-conf
+          mountPath: /usr/share/logstash/pipeline/logstash.conf
+          subPath: logstash.conf
+        env:
+        - name: NODE_ID
+          value: "wso2-apim"
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+             fieldPath: status.podIP
+      volumes:
+      - name: shared-logs
+        emptyDir: {}
+      - name: logstash-yml
+        configMap:
+          name: logstash-yml
+      - name: logstash-conf
+        configMap:
+          name: logstash-conf
+      - name: deployment-toml
+        configMap:
+          name: deployment-toml

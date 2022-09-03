@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wso2-kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wso2-kibana
+      deployment: wso2-kibana
+  minReadySeconds: 30
+  template:
+    metadata:
+      labels:
+        app: wso2-kibana
+        deployment: wso2-kibana
+    spec:
+      initContainers:
+      - name: init-wso2-elasticsearch-service
+        image: busybox
+        command: ['sh', '-c', 'until nslookup wso2-elasticsearch-service; do echo waiting for wso2-elasticsearch-service; sleep 2; done;']
+      containers:
+      - name: wso2-kibana
+        image: docker.elastic.co/kibana/kibana:7.11.0
+        livenessProbe:
+          tcpSocket:
+            port: 5601
+          initialDelaySeconds: 20
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        imagePullPolicy: Always
+        ports:
+        -
+          containerPort: 5601
+          protocol: "TCP"
+          name: http
+        volumeMounts:
+        - name: kibana-yml
+          mountPath: /usr/share/kibana/config/kibana.yml
+          subPath: kibana.yml
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+             fieldPath: status.podIP
+      volumes:
+      - name: kibana-yml
+        configMap:
+          name: kibana-yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wso2-kibana-service
+spec:
+  type: ClusterIP
+  selector:
+    deployment: wso2-kibana
+  ports:
+    -
+      name: http
+      protocol: TCP
+      port: 5601
