@@ -79,7 +79,7 @@ spec:
           mountPath: /home/wso2carbon/wso2am-4.0.0/repository/conf/deployment.toml
           subPath: deployment.toml
       - name: logstash
-        image: maanadev/logstash:7.1.11
+        image: maanadev/logstash:7.11.0
         volumeMounts:
         - name: shared-logs
           mountPath: /usr/share/logstash/mylogs/
