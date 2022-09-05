@@ -2,7 +2,7 @@
 
 ## Steps
 ### 1- Create an organisation an generate an on-prem-key from https://console.choreo.dev/
-### 1-install ingress controller
+### 2- Install ingress controller
 
 ```bash
 NAMESPACE=ingress-basic
@@ -17,14 +17,14 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
   --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
 ```
 
-### 2-get exeternal ip
+### 3- Get exeternal ip
 
 ```bash
 kubectl get svc -n ingress-basic
 ```
 
-### 3-Replace the ip adress in all ingress.yaml files under  the ingress folder with the externa_ip you get in step 2
-### 4- Update the properties in deployment.toml file under configs/apim/deployment.toml
+### 4-Replace the ip adress in all ingress.yaml files under  the ingress folder with the externa_ip you get in step 2
+### 5- Update the properties in deployment.toml file under configs/apim/deployment.toml
 ```bash
 hostname = "wso2apim-portal.YOUR_EXTERNAL_IP.nip.io"
 service_url = "https://wso2apim-gateway.YOUR_EXTERNAL_IP.nip.io/services/"
@@ -35,7 +35,7 @@ enable = true
 config_endpoint = "https://analytics-event-auth.choreo.dev/auth/v1"
 auth_token = "YOUR GENERATED ON-PREM-KEY"
 ```
-### 4-Create the resources under bash folder in that order
+### 6-Create the resources under bash folder in that order
 ```bash
 ./create-namespace
 ./create-configs
@@ -43,7 +43,7 @@ auth_token = "YOUR GENERATED ON-PREM-KEY"
 ./create-service
 ./create-ingress
 ```
-### 4- install prometheus operator
+### 7- install prometheus operator
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
